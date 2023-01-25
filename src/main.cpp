@@ -1,58 +1,103 @@
-#include <Arduino.h>
+#include <FS.h>
+#include <LittleFS.h>
+#include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
-// #include<ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
 
-// my custom header files
+#include <TinyGPSPlus.h>
+#include <SoftwareSerial.h>
+
+//custom headers
+#include <headers/Internet.h>
 #include<headers/Sound.h>
-#include<headers/Internet.h>
+#include<headers/Display.h>
+#include<headers/Gps.h>
+// Replace with your network credentials
+const char* ssid = "ALHN-52C0"; //Replace with your own SSID
+const char* password = "66954015"; //Replace with your own password
 
-//server instance
-ESP8266WebServer server(80);
+const int ledPin = 2;
+String ledState;
 
-
-const  unsigned  char active_buzzer= D5;
-void setup () {
-  Serial.begin(9600); 
-    while (!Serial) continue;                 
-  Serial.print("the program is going to start");  
-
-  // conecting to a wifi network
-//  connectToWiFi("ALHN-52C0","66954015");
-
-// connect to wifi during runtime dynamically
-connectWifiRuntime();
-
-  // playing sound
- pinMode(active_buzzer,OUTPUT); // configure output for sound
-
-//send get request to thinkspeak channel server
-// sendGetRequest(" http://c305-202-51-69-31.ngrok.io/products ");
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
 
 
+// // for gps portion
+// static const int RXPin = 4, TXPin = 3;
+// static const uint32_t GPSBaud = 96000;
 
-// create a server on nodemcu for handle ing webpage
+// // The TinyGPSPlus object
+// TinyGPSPlus gps;
 
- server.on(F("/"), []() {
-    server.send(200, "text/html",getWebPage() );
+// // The serial connection to the GPS device
+// SoftwareSerial ss(RXPin, TXPin);
+
+
+
+void setup(){
+
+  Serial.begin(9600);
+
+  // gps portion 
+    // ss.begin(GPSBaud);
+
+    // led portion
+  pinMode(ledPin, OUTPUT);
+
+  // Initialize LittleFS
+  if(!LittleFS.begin()){
+    Serial.println("An Error has occurred while mounting LittleFS");
+    return;
+  }
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+
+  // Print ESP32 Local IP Address
+  Serial.println(WiFi.localIP());
+
+  // creating mobile hotspot;
+
+
+   WiFi.softAP("MyHotspot", "password");
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+  
+
+  //sending post request
+  sendPostRequest();
+  firstsetup();
+
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/index.html");
   });
   
+  // Route to load style.css file
+  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/style.css", "text/css");
+  });
+
+  // Route to load style.css file
+  server.on("/index.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/index.js");
+  });
+
+ 
+
+  // Start server
   server.begin();
-   Serial.println("HTTP server started");
-
-
-
 }
-
-void loop () {
-// sendPostRequest();
-
-
-//handle request on server of nodemcu
-server.handleClient();
- playBuzzer(active_buzzer,1,1000); 
- delay(10000);
-
-
-
+ 
+void loop(){
+ String data= getGpsLatAndLng();
+ Serial.println(data.length());
+  // delay(2000);
 }

@@ -1,8 +1,8 @@
 #include <ESP8266WiFi.h> // static wifi connect
-// #include<DNSServer.h>
+#include<DNSServer.h>
 
-#include <ESP8266WebServer.h>
-#include <WiFiManager.h>
+// #include <ESP8266WebServer.h>
+// #include <WiFiManager.h>
 
 // for making http request
 #include <WiFiClient.h>
@@ -10,12 +10,15 @@
 // for parsing json
 #include <ArduinoJson.h>
 
-WiFiManager wifiManager;
+// needed for wifi manager
+#include <ESPAsyncWiFiManager.h> 
+
+// WiFiManager wifiManager;
 WiFiClient client;
 HTTPClient http;
 
 // connect to the wifi at compile time
-void connectToWiFi(char ssid[32], char password[32])
+void connectToWiFi(String ssid, String password)
 {
     WiFi.mode(WIFI_STA); // make nodemcu as a station(eg .as a mobile)
     WiFi.begin(ssid, password);
@@ -35,77 +38,80 @@ void connectToWiFi(char ssid[32], char password[32])
 
 // connect to wifi during runtime using soft access point
 
-void connectWifiRuntime()
-{
-    wifiManager.autoConnect("connect nodemcu");
-    Serial.println("connected...to the wifi node mcu :)");
-}
+// void connectWifiRuntime()
+// {
+//     wifiManager.autoConnect("connect nodemcu");
+//     Serial.println("connected...to the wifi node mcu :)");
+// }
 
-void sendGetRequest(String url)
-{
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        int httpCode;
-        http.begin(client, url);
-        Serial.println(url);
-        Serial.println("waitin for response");
-        httpCode = http.GET();
-           Serial.println(httpCode);
+// void sendGetRequest(String url)
+// {
+//     if (WiFi.status() == WL_CONNECTED)
+//     {
+//         int httpCode;
+//         http.begin(client, url);
+//         Serial.println(url);
+//         Serial.println("waitin for response");
+//         httpCode = http.GET();
+//            Serial.println(httpCode);
 
-        if (httpCode > 0)
-        {
-            String payload = http.getString();
-            Serial.println(httpCode);
-            Serial.println(payload);
-            Serial.println("data sent sucessfully");
+//         if (httpCode > 0)
+//         {
+//             String payload = http.getString();
+//             Serial.println(httpCode);
+//             Serial.println(payload);
+//             Serial.println("data sent sucessfully");
 
-            const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 64;
-            DynamicJsonDocument doc(capacity);
+//             const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 64;
+//             DynamicJsonDocument doc(capacity);
 
-            // Parse JSON object
-            // DeserializationError error = deserializeJson(doc, payload);
-            // if (error)
-            // {
-            //     Serial.print(F("deserializeJson() failed: "));
-            //     Serial.println(error.f_str());
+//             // Parse JSON object
+//             // DeserializationError error = deserializeJson(doc, payload);
+//             // if (error)
+//             // {
+//             //     Serial.print(F("deserializeJson() failed: "));
+//             //     Serial.println(error.f_str());
               
-            //     return "error";
-            // }
-            // Serial.println("..............................");
-            // int userId = doc["userId"]; // 1
-            //    Serial.println(userId);
-            // return payload;
-        }
-        else
-        {
-            Serial.println("error in httpscode with status code" + httpCode);
+//             //     return "error";
+//             // }
+//             // Serial.println("..............................");
+//             // int userId = doc["userId"]; // 1
+//             //    Serial.println(userId);
+//             // return payload;
+//         }
+//         else
+//         {
+//             Serial.println("error in httpscode with status code" + httpCode);
       
-        }
-        http.end();
-    }
-    else
-    {
-        Serial.println("wifi-disconnected");
+//         }
+//         http.end();
+//     }
+//     else
+//     {
+//         Serial.println("wifi-disconnected");
   
-    }
-}
+//     }
+// }
 
 
 void sendPostRequest(){
      if(WiFi.status()== WL_CONNECTED){
      
       // Your Domain name with URL path or IP address with path
-      http.begin(client, "http://70d0-202-51-69-31.ngrok.io/createnewuser");
+      http.begin(client, "http://aa8f-202-51-89-120.ngrok.io/update/location/device");
   
       // If you need Node-RED/server authentication, insert user and password below
       //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
   
       // Specify content-type header
     http.addHeader("Content-Type", "application/json");
+    String macAddressVar="jagadish";
       // Data to send with HTTP POST
-      String httpRequestData = "{\"name\":\"jagadisj\",\"email\":\"Baldcojofuvkop280@gmail.com\",\"password\":\"A1234567@?##\"}";           
+      String httpRequestData = "{\"macAddress\":\"macAddressVar\",\"location\":\"0,0\",\"password\":\"A1234567@?##\"}";           
       // Send HTTP POST request
-      int httpResponseCode = http.POST(httpRequestData);
+      httpRequestData.replace("macAddressVar",String(macAddressVar));
+      Serial.println(httpRequestData);
+      int httpResponseCode = http.PUT(httpRequestData);
       
       // If you need an HTTP request with a content type: application/json, use the following:
       //http.addHeader("Content-Type", "application/json");
@@ -130,17 +136,17 @@ void sendPostRequest(){
 
 
 
-String getWebPage(){
-    String html ="<html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title>Document</title> </head> <body> hello its me yo </body> </html>";
-    return html;
-}
+// String getWebPage(){
+//     String html ="<html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title>Document</title> </head> <body> hello its me yo </body> </html>";
+//     return html;
+// }
 
 
-/////////webpage section
-void handleServerOnConnect(){
-  Serial.println("on conncet ");
-}
+// /////////webpage section
+// void handleServerOnConnect(){
+//   Serial.println("on conncet ");
+// }
 
-void handleServerOnNotFound(){
-Serial.println("server not found");
-}
+// void handleServerOnNotFound(){
+// Serial.println("server not found");
+// }
