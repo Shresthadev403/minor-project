@@ -13,7 +13,7 @@
 #include <ArduinoJson.h>
 
 // needed for wifi manager
-#include <ESPAsyncWiFiManager.h> 
+// #include <ESPAsyncWiFiManager.h> 
 
    
 
@@ -144,6 +144,7 @@ HTTPClient https;
         
       // Free resources
       https.end();
+      // delay(5000);
     }
     else {
       Serial.println("WiFi Disconnected");
