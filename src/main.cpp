@@ -2,14 +2,46 @@
 #include <LittleFS.h>
 #include <ESP8266WiFi.h>
 
+// for gps portion
 #include <TinyGPSPlus.h>
 #include <SoftwareSerial.h>
+
+// nfc read write
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SH110X.h>
+#include <PN532_I2C.h>
+#include <PN532.h>
+#include <NfcAdapter.h>
 
 // custom headers
 #include <headers/Internet.h>
 #include <headers/Sound.h>
-#include <headers/Display.h>
+// #include <headers/Display.h>
 #include <headers/Gps.h>
+#include<headers/File.h>
+
+// this is for pn532 declaration
+PN532_I2C pn532_i2c(Wire);
+NfcAdapter nfc = NfcAdapter(pn532_i2c);
+String tagId = "None";
+byte nuidPICC[4];
+
+/* Uncomment the initialize the I2C address , uncomment only one, If you get a totally blank screen try the other*/
+#define i2c_Address 0x3c // initialize with the I2C addr 0x3C Typically eBay OLED's
+// #define i2c_Address 0x3d //initialize with the I2C addr 0x3D Typically Adafruit OLED's
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET -1    //   QT-PY / XIAO
+Adafruit_SH1106G display = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define NUMFLAKES 10
+#define XPOS 0
+#define YPOS 1
+#define DELTAY 2
+
 // Replace with your network credentials
 const char *ssid = "123";            // Replace with your own SSID
 const char *password = "1234567890"; // Replace with your own password
@@ -25,9 +57,16 @@ TinyGPSPlus gps;
 
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
-unsigned long lastRead;        // variable to store the time of the last GPS reading
-unsigned long interval = 5000; // interval between GPS readings in milliseconds
+unsigned long lastRead; // variable to store the time of the last GPS reading
+// unsigned long interval = 5000; // interval between GPS readings in milliseconds
 
+
+
+
+
+
+
+// gps
 String getGpsLocation()
 {
   Serial.print(F("Location: "));
@@ -36,16 +75,7 @@ String getGpsLocation()
     // Serial.print(gps.location.lat(), 6);
     // Serial.print(F(","));
     // Serial.print(gps.location.lng(), 6);
-
     String latndLng;
-
-    //     // while (ss.available() > 0)
-    //     // {
-    //     //     if (gps.encode(ss.read()))
-    //     //     {
-    //     //         //  displayInfo();
-    //     //         Serial.println("done serial");
-
     float lat = gps.location.lat();
     char charData[20];
     sprintf(charData, "%.6f", lat);
@@ -68,10 +98,52 @@ String getGpsLocation()
   }
 }
 
+////// nfc portion/ thus is for nfc
+void readNFC()
+{
+
+  if (nfc.tagPresent())
+  {
+
+    NfcTag tag = nfc.read();
+
+    tag.print();
+    tagId = tag.getUidString();
+    Serial.println(tagId);
+
+    display.setCursor(0, 0);
+
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SH110X_WHITE);
+    display.println("tag found");
+
+    display.setTextSize(2);
+    display.setTextColor(SH110X_WHITE);
+
+    display.setCursor(2, 40);
+    display.setTextSize(1);
+    display.print(tagId);
+    display.display();
+
+    display.clearDisplay();
+
+    // send post request
+    sendUserTravelCreate(tagId);
+  }
+
+  delay(1000);
+}
+
 void setup()
 {
 
   Serial.begin(9600);
+  display.begin(i2c_Address, true);
+delay(250);
+display.clearDisplay();
+display.display();
+nfc.begin();  
 
   // gps portion
   ss.begin(GPSBaud);
@@ -103,46 +175,85 @@ void setup()
   // IPAddress myIP = WiFi.softAPIP();
   // Serial.print("AP IP address: ");
   // Serial.println(myIP);
+
+  // / nfc portion
+
+  display.begin(i2c_Address, true);
+  delay(250);
+  display.clearDisplay();
+  display.display();
+  nfc.begin();
 }
+
+unsigned long previousMillis = 0; // variable to store the last time the event was triggered
+const long interval = 5000;       // interval in milliseconds
 
 void loop()
 {
+ 
+  
+
+  // for nfc and display
+   readNFC();
+ display.display();
+  delay(2000);
+  display.clearDisplay();
+
+
+
   // This sketch displays information every time a new sentence is correctly encoded.
-  while (ss.available() > 0)
-  {
-    if (gps.encode(ss.read()))
-    {
-    String data=getGpsLocation();
-    if(data=="INVALID"){
-      break;
-    }else{
-      Serial.println("sending data to server");
-      sendPostRequest(data);
-      delay(5000);
-    }
-    }
-  }
 
-  if (millis() > 5000 && gps.charsProcessed() < 10)
-  {
-    Serial.println(F("No GPS detected: check wiring."));
-    while (true)
-      ;
-  }
+  // unsigned long currentMillis = millis();  // get the current time
 
-  // calculate the time since the last GPS reading
-  // unsigned long now = millis();
-  // unsigned long timeSinceLastRead = now - lastRead;
-  // check if the interval has passed
-  // if (timeSinceLastRead >= interval)
-  // {
-  //     // if the interval has passed, update the lastRead variable and repeat the process
-  //     lastRead = now;
+  // if (currentMillis - previousMillis >= interval) {
+  //   // if 5 seconds have passed
+  //   previousMillis = currentMillis;  // update the previous time
+  //   // do something here, e.g. send a message via Wi-Fi
+  //   Serial.println("5 seconds have passed");
   // }
-  // else
+
+  // while (ss.available() > 0)
   // {
-  //     // if the interval has not passed, delay for the remaining time
-  //     delay(interval - timeSinceLastRead);
+
+  //   if (gps.encode(ss.read()))
+  //   {
+  //   String data=getGpsLocation();
+  //   if(data=="INVALID"){
+  //     break;
+  //   }else{
+  //     Serial.println("sending data to server");
+  //     sendPostGPSLocationRequest(data);
+  //     delay(5000);
+  //     break;
+  //   }
+  //   }
   // }
-  // delay(5000);
+
+  // Serial.println("dd");
+
+  // if (millis() > 5000 && gps.charsProcessed() < 10)
+  // {
+  //   Serial.println(F("No GPS detected: check wiring."));
+  //   while (true)
+  //     ;
+  // }
+
 }
+
+/// the above is the gps reading
+
+// calculate the time since the last GPS reading
+// unsigned long now = millis();
+// unsigned long timeSinceLastRead = now - lastRead;
+// check if the interval has passed
+// if (timeSinceLastRead >= interval)
+// {
+//     // if the interval has passed, update the lastRead variable and repeat the process
+//     lastRead = now;
+// }
+// else
+// {
+//     // if the interval has not passed, delay for the remaining time
+//     delay(interval - timeSinceLastRead);
+// }
+// delay(5000);
