@@ -2,6 +2,7 @@
 #include <LittleFS.h>
 #include <ESP8266WiFi.h>
 
+#include <StringSplitter.h>
 // for gps portion
 #include <TinyGPSPlus.h>
 #include <SoftwareSerial.h>
@@ -20,7 +21,7 @@
 #include <headers/Sound.h>
 // #include <headers/Display.h>
 #include <headers/Gps.h>
-#include<headers/File.h>
+#include <headers/File.h>
 
 // this is for pn532 declaration
 PN532_I2C pn532_i2c(Wire);
@@ -60,11 +61,61 @@ SoftwareSerial ss(RXPin, TXPin);
 unsigned long lastRead; // variable to store the time of the last GPS reading
 // unsigned long interval = 5000; // interval between GPS readings in milliseconds
 
+bool tagIdLocallyCheck(String tagId)
+{
 
+  bool isFound = false;
+  String str;
+  File file = LittleFS.open("/tags.txt", "w");
+  if (!file)
+  {
+    Serial.println("Failed to open file for reading");
+    return false;
+  }
 
+  // Serial.println("File Content:");
+  while (file.available())
+  {
+    // Serial.write(file.read());
+    str = file.readString();
+  }
 
+  StringSplitter *splitter = new StringSplitter(str, ',', 10); // new StringSplitter(string_to_split, delimiter, limit)
+  int itemCount = splitter->getItemCount();
+  Serial.println("Item count: " + String(itemCount));
+String  newstr = "";
+  for (int i = 0; i < itemCount ; i++)
+  {
 
+    String item = splitter->getItemAtIndex(i);
+    Serial.println("Item @ index " + String(i) + ": " + String(item));
+    if (String(item) == tagId)
+    {
+      isFound = true;
+    }
+    else
+    {
+      if (i == 0)
+      {
+        newstr = String(item);
+      }
+      else
+      {
+        newstr = newstr + ",";
+        newstr = newstr + String(item);
+      }
+    }
+  }
 
+Serial.println(newstr);
+  Serial.println(str);
+  // if(isFound==false){
+  //   file.print(newstr);
+  // }
+  file.close();
+
+  return isFound;
+}
 
 // gps
 String getGpsLocation()
@@ -140,10 +191,10 @@ void setup()
 
   Serial.begin(9600);
   display.begin(i2c_Address, true);
-delay(250);
-display.clearDisplay();
-display.display();
-nfc.begin();  
+  delay(250);
+  display.clearDisplay();
+  display.display();
+  nfc.begin();
 
   // gps portion
   ss.begin(GPSBaud);
@@ -190,16 +241,16 @@ const long interval = 5000;       // interval in milliseconds
 
 void loop()
 {
- 
-  
+
+  bool data = tagIdLocallyCheck("sdfsdfsdcdc dfs");
+  Serial.print(data);
+  delay(5000);
 
   // for nfc and display
-   readNFC();
- display.display();
-  delay(2000);
-  display.clearDisplay();
-
-
+  //    readNFC();
+  //  display.display();
+  //   delay(2000);
+  //   display.clearDisplay();
 
   // This sketch displays information every time a new sentence is correctly encoded.
 
@@ -237,7 +288,6 @@ void loop()
   //   while (true)
   //     ;
   // }
-
 }
 
 /// the above is the gps reading
