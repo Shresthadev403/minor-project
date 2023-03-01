@@ -66,7 +66,7 @@ bool tagIdLocallyCheck(String tagId)
 
   bool isFound = false;
   String str;
-  File file = LittleFS.open("/tags.txt", "w");
+  File file = LittleFS.open("/tags.txt", "r");
   if (!file)
   {
     Serial.println("Failed to open file for reading");
@@ -79,12 +79,13 @@ bool tagIdLocallyCheck(String tagId)
     // Serial.write(file.read());
     str = file.readString();
   }
+  file.close();
 
-  StringSplitter *splitter = new StringSplitter(str, ',', 10); // new StringSplitter(string_to_split, delimiter, limit)
+  StringSplitter *splitter = new StringSplitter(str, ',', 50); // new StringSplitter(string_to_split, delimiter, limit)
   int itemCount = splitter->getItemCount();
   Serial.println("Item count: " + String(itemCount));
-String  newstr = "";
-  for (int i = 0; i < itemCount ; i++)
+  String newstr = "";
+  for (int i = 0; i < itemCount; i++)
   {
 
     String item = splitter->getItemAtIndex(i);
@@ -107,12 +108,26 @@ String  newstr = "";
     }
   }
 
-Serial.println(newstr);
+  // Serial.println(newstr);
+  //   Serial.println(str);
+  File filenew = LittleFS.open("/tags.txt", "w");
+  if (!filenew)
+  {
+    Serial.println("Failed to open file for writing");
+    return false;
+  }
+  if (isFound == true)
+  {
+    filenew.print(newstr);
+  }
+  else
+  {
+    str = str + tagId + ",";
+    filenew.print(str);
+  }
+  filenew.close();
+  Serial.println(newstr);
   Serial.println(str);
-  // if(isFound==false){
-  //   file.print(newstr);
-  // }
-  file.close();
 
   return isFound;
 }
@@ -172,15 +187,48 @@ void readNFC()
     display.setTextSize(2);
     display.setTextColor(SH110X_WHITE);
 
+
+    
+// this is for user checkin and checkout request
+ bool dataFound = tagIdLocallyCheck(tagId);
+  Serial.print(dataFound);
+  if(dataFound==true){
+    display.setCursor(1, 20);
+    display.setTextSize(1);
+    display.print("check Out");
+
     display.setCursor(2, 40);
     display.setTextSize(1);
     display.print(tagId);
     display.display();
+    
+sendUserTravelCheckOut(tagId);
+
+    // display.display();
+  }else{
+     display.setCursor(1, 20);
+    display.setTextSize(1);
+    display.print("check In");
+
+
+display.setCursor(2, 40);
+    display.setTextSize(1);
+    display.print(tagId);
+    display.display();
+
+    sendUserTravelCreate(tagId);
+   
+    // display.display();
+  }
+
+  // display.setCursor(2, 40);
+  //   display.setTextSize(1);
+  //   display.print(tagId);
+  //   display.display();
 
     display.clearDisplay();
 
-    // send post request
-    sendUserTravelCreate(tagId);
+  
   }
 
   delay(1000);
@@ -242,15 +290,37 @@ const long interval = 5000;       // interval in milliseconds
 void loop()
 {
 
-  bool data = tagIdLocallyCheck("sdfsdfsdcdc dfs");
-  Serial.print(data);
-  delay(5000);
+   while (ss.available() )
+  {
+
+    if (gps.encode(ss.read()))
+    {
+    String data=getGpsLocation();
+    if(data=="INVALID"){
+      break;
+    }else{
+    // Send GPS location to server
+      if (millis() % 5000 == 0) {
+        // sendGPSData(lat, lng);
+        Serial.println('send gps data to server');
+      }
+      // Serial.println("sending data to server");
+      // sendPostGPSLocationRequest(data);
+      // delay(5000);
+      // break;
+    }
+    }
+  }
+
+  // bool data = tagIdLocallyCheck("sdfsdfsdcdc dfs");
+  // Serial.print(data);
+  // delay(5000);
 
   // for nfc and display
-  //    readNFC();
-  //  display.display();
-  //   delay(2000);
-  //   display.clearDisplay();
+  readNFC();
+  display.display();
+  delay(2000);
+  display.clearDisplay();
 
   // This sketch displays information every time a new sentence is correctly encoded.
 
@@ -263,22 +333,22 @@ void loop()
   //   Serial.println("5 seconds have passed");
   // }
 
-  // while (ss.available() > 0)
-  // {
+ 
 
-  //   if (gps.encode(ss.read()))
-  //   {
-  //   String data=getGpsLocation();
-  //   if(data=="INVALID"){
-  //     break;
-  //   }else{
-  //     Serial.println("sending data to server");
-  //     sendPostGPSLocationRequest(data);
-  //     delay(5000);
-  //     break;
-  //   }
-  //   }
+// while (gpsSerial.available()) {
+//     if (gps.encode(gpsSerial.read())) {
+//       double lat, lng;
+//       gps.f_get_position(&lat, &lng);
+
+//       // Send GPS location to server
+//       if (millis() % 5000 == 0) {
+//         // sendGPSData(lat, lng);
+//       }
+//     }
   // }
+
+
+
 
   // Serial.println("dd");
 

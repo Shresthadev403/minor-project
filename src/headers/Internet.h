@@ -163,7 +163,7 @@ void sendUserTravelCreate(String tagIdVar)
 
     HTTPClient https;
     // Your Domain name with URL path or IP address with path
-    https.begin(*client, "https://fcb7-202-51-80-210.ngrok.io/create/usertravel");
+    https.begin(*client, "https://minor-project-backend-production.up.railway.app/create/usertravel");
 
     // If you need Node-RED/server authentication, insert user and password below
     // http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
@@ -220,7 +220,7 @@ void sendUserTravelCheckOut(String tagIdVar)
 
     HTTPClient https;
     // Your Domain name with URL path or IP address with path
-    https.begin(*client, "https://fcb7-202-51-80-210.ngrok.io/usertravel/checkout");
+    https.begin(*client, "https://minor-project-backend-production.up.railway.app/usertravel/checkout");
 
     // If you need Node-RED/server authentication, insert user and password below
     // http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
