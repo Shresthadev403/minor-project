@@ -50,6 +50,9 @@ const char *password = "1234567890"; // Replace with your own password
 const int ledPin = 2;
 String ledState;
 
+
+static const int SoundPin=D0;
+
 static const int RXPin = D5, TXPin = D6;
 static const uint32_t GPSBaud = 9600;
 
@@ -203,6 +206,7 @@ void readNFC()
     display.display();
     
 sendUserTravelCheckOut(tagId);
+ playBuzzer(D7,2,100);
 
     // display.display();
   }else{
@@ -217,6 +221,7 @@ display.setCursor(2, 40);
     display.display();
 
     sendUserTravelCreate(tagId);
+     playBuzzer(D7,3,500);
    
     // display.display();
   }
@@ -238,6 +243,7 @@ void setup()
 {
 
   Serial.begin(9600);
+  pinMode(D7,OUTPUT);
   display.begin(i2c_Address, true);
   delay(250);
   display.clearDisplay();
@@ -262,6 +268,7 @@ void setup()
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(1000);
+    // playBuzzer(SoundPin,2,1000);
     Serial.println("Connecting to WiFi..");
   }
 
@@ -287,40 +294,139 @@ void setup()
 unsigned long previousMillis = 0; // variable to store the last time the event was triggered
 const long interval = 5000;       // interval in milliseconds
 
+
+unsigned long lastSendTime = 0;
+unsigned long sendInterval = 5000;
+
 void loop()
 {
+  
+ 
 
-   while (ss.available() )
-  {
+  //  while (ss.available()>0 )
+  // {
+  //     Serial.println("ss.available");
 
-    if (gps.encode(ss.read()))
-    {
-    String data=getGpsLocation();
-    if(data=="INVALID"){
-      break;
-    }else{
-    // Send GPS location to server
-      if (millis() % 5000 == 0) {
-        // sendGPSData(lat, lng);
-        Serial.println('send gps data to server');
-      }
-      // Serial.println("sending data to server");
-      // sendPostGPSLocationRequest(data);
-      // delay(5000);
-      // break;
-    }
-    }
+  //   if (gps.encode(ss.read())>0)
+  //   {
+  //     Serial.println("ss.read");
+  //   String data=getGpsLocation();
+  //   if(data=="INVALID"){
+  //     break;
+  //   }else{
+  //     Serial.println("valid");
+  //   // Send GPS location to server
+  //     if (millis() % 5000 == 0) {
+  //       // sendGPSData(lat, lng);
+  //       Serial.println('send gps data to server');
+  //     }
+  //     Serial.println("sending data to server");
+  //     // sendPostGPSLocationRequest(data);
+  //     // delay(5000);
+  //     // break;
+  //   }
+  //     Serial.println(data);
+
+  //   }
+  // }
+
+  // for nfc and display
+  // readNFC();
+  // display.display();
+  // delay(2000);
+  // display.clearDisplay();
+
+
+
+   while (ss.available()) { // while there is data available from the GPS module
+    gps.encode(ss.read()); 
+    // read the data and feed it to the TinyGPS++ object
+    // Serial.println("ddd");
   }
+
+ 
+    // Serial.println("10s passed");
+     // check if the current time is a multiple of 5000ms
+    if (gps.location.isValid()) { // check if the GPS has a valid fix
+      // Serial.print("Latitude: ");
+      // Serial.println(gps.location.lat(), 6); // print the latitude with 6 decimal places
+      // Serial.print("Longitude: ");
+      // Serial.println(gps.location.lng(), 6); 
+    //   Serial.println(millis());
+    //    if (millis() % 10000 == 0) {
+    // String data=getGpsLocation();
+    // Serial.println(data);
+    // sendPostGPSLocationRequest(data);
+
+
+    //    }else{
+    //     Serial.print("ddddddddddddd");
+    //     delay(2000);
+    //    }
+
+     unsigned long currentTime = millis();
+
+    //  Serial.println(lastSendTime);
+    //  Serial.println(currentTime);
+
+      // for nfc and display
+  readNFC();
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  if (currentTime - lastSendTime >= sendInterval) {
+    // String gpsLocation = getGpsLocation();
+    // sendPostGPSLocationRequest(gpsLocation);
+    String data=getGpsLocation();
+    Serial.println(data);
+    sendPostGPSLocationRequest(data);
+    lastSendTime = currentTime;
+  }
+      
+      // print the longitude with 6 decimal places
+
+
+
+    } else {
+      Serial.println("No GPS data available.");
+    }
+    // Serial.println("another");
+    // for nfc and display
+  // readNFC();
+  // display.display();
+  // delay(2000);
+  // display.clearDisplay();
+  
 
   // bool data = tagIdLocallyCheck("sdfsdfsdcdc dfs");
   // Serial.print(data);
   // delay(5000);
 
-  // for nfc and display
-  readNFC();
-  display.display();
-  delay(2000);
-  display.clearDisplay();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
 
   // This sketch displays information every time a new sentence is correctly encoded.
 
